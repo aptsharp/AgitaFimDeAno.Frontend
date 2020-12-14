@@ -1,0 +1,134 @@
+# Node.js with Angular
+# Build a Node.js project that uses Angular.
+# Add steps that analyze code, save build artifacts, deploy, and more:
+# https://docs.microsoft.com/azure/devops/pipelines/languages/javascript
+
+trigger:
+  branches:
+    include:
+      - master
+pr: none
+
+variables:
+  caminhoArtefatos: 'dist'
+
+stages:
+- stage: 'Test_Build'
+  displayName: 'Frontend: test build'
+  jobs: 
+  - job: 'Build'
+    displayName: 'Build job'
+    pool:
+      vmImage: 'windows-latest'      
+      demands:
+        - npm
+
+    steps:
+    - script: npm install
+      displayName: 'Instalando o npm'
+
+    - script: |
+        npm install -g @angular/cli
+        ng add @angular/material
+      displayName: 'Instalando o angular cli e angular material'
+
+    - script: ng build --prod="false"
+      displayName: 'Buildando o projeto'
+
+    - task: ArchiveFiles@2
+      inputs:
+        rootFolderOrFile: '$(caminhoArtefatos)'
+        includeRootFolder: false
+        archiveFile: '$(caminhoArtefatos)/site.zip'
+        replaceExistingArchive: true
+      displayName: 'Zipando o projeto'
+      
+    - task: PublishBuildArtifacts@1
+      inputs:
+        PathtoPublish: '$(caminhoArtefatos)'
+        ArtifactName: 'web-app'
+        publishLocation: 'Container'
+      displayName: 'Publicando artefato'
+
+- stage: 'Test'
+  displayName: 'Deploy para testes'
+  dependsOn: 'Test_Build'
+  jobs:
+  - deployment: Deploy
+    pool:
+      vmImage: 'windows-latest'
+    environment: tests-frontend
+    variables:
+    - group: Testes
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - download: current
+            artifact: web-app
+          - task: AzureWebApp@1
+            displayName: 'Deploy para o web app do front'
+            inputs:
+              azureSubscription: 'App Service Frontend'
+              appName: '$(WebAppFrontend)'
+              package: '$(Pipeline.Workspace)/web-app/*.zip'
+
+- stage: 'Prod_Build'
+  displayName: 'Prod build'
+  dependsOn: 'Test'
+  jobs: 
+  - job: 'Build'
+    displayName: 'Build job'
+    pool:
+      vmImage: 'windows-latest'      
+      demands:
+        - npm
+
+    steps:
+    - script: npm install
+      displayName: 'Instalando o npm'
+
+    - script: npm install -g @angular/cli
+        ng add @angular/material
+      displayName: 'Instalando o angular cli e angular material'
+
+    - script: ng build --prod="true"
+      displayName: 'Buildando o projeto'
+
+    - task: ArchiveFiles@2
+      inputs:
+        rootFolderOrFile: '$(caminhoArtefatos)'
+        includeRootFolder: false
+        archiveFile: '$(caminhoArtefatos)/site.zip'
+        replaceExistingArchive: true
+      displayName: 'Zipando o projeto'
+      
+    - task: PublishBuildArtifacts@1
+      inputs:
+        PathtoPublish: '$(caminhoArtefatos)'
+        ArtifactName: 'web-app'
+        publishLocation: 'Container'
+      displayName: 'Publicando artefato'
+
+- stage: 'Deploy'
+  displayName: 'Deploy para produção'
+  dependsOn: 'Prod_Build'
+  jobs:
+  - deployment: Deploy
+    pool:
+      vmImage: 'windows-latest'
+    environment: prod-frontend
+    variables:
+    - group: Producao
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - download: current
+            artifact: web-app
+          - task: AzureWebApp@1
+            displayName: 'Deploy para o web app do front'
+            inputs:
+              azureSubscription: 'App Service Frontend'
+              appName: '$(WebAppFrontend)'
+              package: '$(Pipeline.Workspace)/web-app/*.zip'
