@@ -10,7 +10,7 @@ trigger:
 pr: none
 
 variables:
-  caminhoArtefatos: 'dist'
+  caminhoArtefatos: 'dist/angular-material-base'
 
 stages:
 - stage: 'Test_Build'
