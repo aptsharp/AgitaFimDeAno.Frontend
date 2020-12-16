@@ -6,7 +6,7 @@ import { ConfigPrams } from '../shared/models/config-prams';
 import { ConfigParamsService } from './config-params.service';
 import { environment } from '../../environments/environment';
 
-const url = `${environment.apiUrl}filmes`;
+const url = `${environment.apiUrl}filmes/`;
 
 @Injectable({
   providedIn: 'root'
