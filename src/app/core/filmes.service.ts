@@ -4,8 +4,9 @@ import { Observable } from 'rxjs';
 import { Filme } from '../shared/models/filme';
 import { ConfigPrams } from '../shared/models/config-prams';
 import { ConfigParamsService } from './config-params.service';
+import { environment } from '../../environments/environment';
 
-const url = 'http://localhost:3000/filmes/';
+const url = `${environment.apiUrl}filmes/`;
 
 @Injectable({
   providedIn: 'root'
